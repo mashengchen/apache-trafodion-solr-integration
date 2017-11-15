@@ -1,0 +1,6 @@
+zkhosts : 
+- 192.168.0.11:2181
+defaultCollection : traf_collection
+cnField : cnText
+schema : SEABASE
+catalog : TRAFODION

@@ -1,2 +1,2 @@
-# apache-trafodion-solr-integration
-this is a  proto type for apache  trafodion which integrate with solr
+this is a UDF which integrate with solr.
+currently integrate solr6.6
