@@ -1,5 +1,5 @@
 /**
-* @@@ START COPYRIGHT @@@
+ * @@@ START COPYRIGHT @@@
 
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -18,7 +18,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 
-* @@@ END COPYRIGHT @@@
+ * @@@ END COPYRIGHT @@@
  */
 package org.trafodion.udf;
 
@@ -38,11 +38,8 @@ import org.yaml.snakeyaml.constructor.Constructor;
 public class Settings {
     public int batch = 100;
     public String defaultCollection = null;
-    private String cnField = null;
     private String schema = null;
     private String catalog = null;
-
-    private List<String> zkhosts = new ArrayList<>();
 
     public static Settings read(final InputStream stream) {
         Objects.requireNonNull(stream);
@@ -57,13 +54,8 @@ public class Settings {
     }
 
     public String getZkStr() {
-        if (zkhosts.size() > 0) {
-
-            StringBuffer sb = new StringBuffer();
-            for (String zkhost : zkhosts) {
-                sb.append(zkhost).append(",");
-            }
-            return sb.substring(0, sb.length() - 1).toString();
+        if (System.getenv("ZOO_PORT_NODES") != null && !"".equals(System.getenv("ZOO_PORT_NODES"))) {
+            return System.getenv("ZOO_PORT_NODES");
         } else {
             return "localhost:2181";
         }
@@ -71,8 +63,7 @@ public class Settings {
 
     @Override
     public String toString() {
-        return "zkhosts : " + getZkhosts() + "; defaultCollection : " + defaultCollection + "; cnField : "
-                + this.cnField + "; ";
+        return "zkhosts : " + getZkStr() + "; defaultCollection : " + defaultCollection + "; cnField : " + "; ";
     }
 
     public static void main(String[] args) {
@@ -84,19 +75,6 @@ public class Settings {
             e.printStackTrace();
         }
 
-    }
-
-    public List<String> getZkhosts() {
-        if (zkhosts.size() == 0) {
-            return Arrays.asList(new String[] { "localhost:2181" });
-        } else {
-
-            return zkhosts;
-        }
-    }
-
-    public void setZkhosts(List<String> zkhosts) {
-        this.zkhosts = zkhosts;
     }
 
     public String getSchema() {
@@ -113,14 +91,6 @@ public class Settings {
 
     public void setCatalog(String catalog) {
         this.catalog = catalog.toUpperCase();
-    }
-
-    public String getCnField() {
-        return cnField == null ? "cnText" : cnField;
-    }
-
-    public void setCnField(String cnField) {
-        this.cnField = cnField;
     }
 
 }
