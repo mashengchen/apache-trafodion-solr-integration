@@ -22,13 +22,7 @@ under the License.
  */
 package org.trafodion.udf;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,30 +60,16 @@ import org.trafodion.sql.udr.UDRPlanInfo;
 public class TXT_SEARCH extends UDR {
     private final static String[] typeName = { "_s", "_i", "_l", "_d" };
     private final static String CN = "_cn_s";
-    private String schema;
-    private String catalog;
-    static int batch = 100;
+    private final static String EN = "_en_s";
 
     private SolrClient getSolrClient() throws UDRException {
         String homeDir = System.getenv("MY_SQROOT");
         if (System.getenv("MY_SQROOT") == null || System.getenv("MY_SQROOT").length() == 0) {
             homeDir = System.getenv("TRAF_HOME");
         }
-        String yamlFile = homeDir + "/udr/public/external_libs/solr.yaml";
-        File f = new File(yamlFile);
-        if (!f.exists()) {
-            throw new UDRException(38000, "error : input data file [%s] not exist...", yamlFile);
-        }
-        Settings s = null;
-        try {
-            s = Settings.read(new FileInputStream(f));
-        } catch (FileNotFoundException e) {
-        }
-        this.schema = s.getSchema();
-        this.catalog = s.getCatalog();
 
-        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(s.getZkStr()).build();
-        cloudSolrClient.setDefaultCollection(s.defaultCollection);
+        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(Utils.getZkHosts()).build();
+        cloudSolrClient.setDefaultCollection(Utils.getDefaultCollection());
 
         try {
             SolrPingResponse ping = cloudSolrClient.ping();
@@ -98,7 +78,7 @@ public class TXT_SEARCH extends UDR {
             throw new UDRException(
                     38000,
                     "error while connecting to full text search engine...please make sure configuration in file [%s] is correct...[%s]",
-                    yamlFile, e.getMessage());
+                    homeDir + "/udr/public/conf/solr.yaml", e.getMessage());
         }
         return cloudSolrClient;
     }
@@ -237,9 +217,11 @@ public class TXT_SEARCH extends UDR {
         return result;
     }
 
+    // return colName & fieldType
+    // eg: a string column [A] will be [A_s]
     private Map<String, String> genColFieldMap(UDRInvocationInfo info) throws UDRException {
         Map<String, String> map = new HashMap<String, String>();
-        int numCols = info.out().getNumColumns();
+        int numCols = info.out().getNumColumns();// get from out column
         for (int i = 0; i < numCols; i++) {
             ColumnInfo ci = info.out().getColumn(i);
             TypeInfo type = ci.getType();
@@ -288,60 +270,21 @@ public class TXT_SEARCH extends UDR {
         return map;
     }
 
-    private Map<String, String[]> getTablePKinfo(String catalog, String schema, String tblName) {
-        Map<String, String[]> map = new HashMap<String, String[]>();
-        try {
-            String env = System.getenv("MY_SQROOT");
-            String source = "cd " + env + ";. sqenv.sh;";
-            String export = "export LD_PRELOAD=$JAVA_HOME/jre/lib/amd64/libjsig.so:$MY_SQROOT/export/lib64d/libseabasesig.so;";
-            String runjar = env + File.separator + "export" + File.separator + "lib" + File.separator
-                    + "SolrUDF-1.0.jar";
-            String java = "java -cp $CLASSPATH:" + runjar + " org.trafodion.udf.DBUtils " + catalog + " " + schema
-                    + " " + tblName;
-
-            Runtime rt = Runtime.getRuntime();
-            Process proc = rt.exec(new String[] { "/bin/bash", "-c", source + export + java });
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            String line = null;
-            boolean hasError = false;
-            while ((line = in.readLine()) != null) {
-                if ("finish".equals(line)) {
-                    break;
-                }
-                if ("error".equals(line)) {
-                    hasError = true;
-                    break;
-                }
-                String[] arr = line.split(",");
-                map.put(arr[0], arr);
-            }
-            if (hasError) {
-                in = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-                line = null;
-                while ((line = in.readLine()) != null) {
-                    if ("finish".equals(line)) {
-                        break;
-                    }
-                    map.clear();
-                    map.put("error", new String[] { line });
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return map;
-    }
-
     @Override
     public void describeParamsAndColumns(UDRInvocationInfo info) throws UDRException {
-        getSolrClient();
+        SolrClient solr = getSolrClient();
+        try {
+            solr.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         // get pk by tbl name through t2's prepareStatement
         String tblName = info.par().getString(0).toUpperCase();
-        Map<String, String[]> colNameType = getTablePKinfo(catalog, schema, tblName);
-
+        Map<String, String[]> colNameType = Utils.getTablePKinfo(Utils.getCatalog(), Utils.getSchema(), tblName);
+        if (colNameType.get("error") != null) {
+            throw new UDRException(38000, "error while get table primart key info , error info [ %s ]",
+                    colNameType.get("error")[0]);
+        }
         // set out columns
         for (Entry<String, String[]> entry : colNameType.entrySet()) {
             String key = entry.getKey();
@@ -349,7 +292,6 @@ public class TXT_SEARCH extends UDR {
             info.out().addColumn(new ColumnInfo(key, typeInfo));
             // info.out().addVarCharColumn(key, 100, false);
         }
-
         // info.addPassThruColumns();
     }
 
@@ -358,11 +300,6 @@ public class TXT_SEARCH extends UDR {
         String tblName = info.par().getString(0).toUpperCase();
         String columnName = info.par().getString(1).toUpperCase();
         String keyWork = info.par().getString(2);
-        try {
-            keyWork = new String(keyWork.getBytes("ISO8859-1"), "utf-8");
-        } catch (UnsupportedEncodingException e1) {
-            e1.printStackTrace();
-        }
 
         Map<String, String> map = genColFieldMap(info);
         int outNumCols = info.out().getNumColumns();
@@ -370,10 +307,15 @@ public class TXT_SEARCH extends UDR {
         for (int i = 0; i < outNumCols; i++) {
             outCols.add(info.out().getColumn(i).getColName());
         }
-
         SolrClient solr = getSolrClient();
         SolrQuery query = new SolrQuery();
-        query.setQuery(columnName + CN + ":" + keyWork);
+        String queryStr = null;
+        if (Utils.isChinese(keyWork)) {
+            queryStr = columnName + CN + ":" + keyWork;
+        } else {
+            queryStr = columnName + EN + ":" + keyWork;
+        }
+        query.setQuery(queryStr);
         query.setFilterQueries("subject:" + tblName);
         query.setFields(map.values().toArray(new String[map.values().size()]));
         try {
@@ -386,7 +328,13 @@ public class TXT_SEARCH extends UDR {
                 }
                 emitRow(info);
             }
+            solr.close();
         } catch (SolrServerException | IOException e) {
+            try {
+                solr.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
             e.printStackTrace();
         }
     }

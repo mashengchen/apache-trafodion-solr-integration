@@ -26,8 +26,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,9 +35,11 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 public class Settings {
     public int batch = 100;
+
     public String defaultCollection = null;
     private String schema = null;
     private String catalog = null;
+    public List<String> zkhosts;
 
     public static Settings read(final InputStream stream) {
         Objects.requireNonNull(stream);
@@ -51,19 +51,6 @@ public class Settings {
 
         final Yaml yaml = new Yaml(constructor);
         return yaml.loadAs(stream, Settings.class);
-    }
-
-    public String getZkStr() {
-        if (System.getenv("ZOO_PORT_NODES") != null && !"".equals(System.getenv("ZOO_PORT_NODES"))) {
-            return System.getenv("ZOO_PORT_NODES");
-        } else {
-            return "localhost:2181";
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "zkhosts : " + getZkStr() + "; defaultCollection : " + defaultCollection + "; cnField : " + "; ";
     }
 
     public static void main(String[] args) {

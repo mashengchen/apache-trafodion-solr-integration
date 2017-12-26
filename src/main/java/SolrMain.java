@@ -71,7 +71,7 @@ public class SolrMain {
         }
         Settings s = Settings.read(new FileInputStream(f));
 
-        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(s.getZkStr()).build();
+        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(s.zkhosts).build();
         cloudSolrClient.setDefaultCollection(s.defaultCollection);
 
         try {
@@ -131,22 +131,21 @@ public class SolrMain {
         ftd.setIndexAnalyzer(ad);
         ftd.setQueryAnalyzer(ad);
 
-         SchemaRequest.FieldType ft = new
-         SchemaRequest.FieldType("solr_cnAnalyzer");
-         try {
-         SchemaResponse.FieldTypeResponse ftresp = ft.process(solr);
-         System.out.println(ftresp);
-         } catch (SolrServerException | IOException e1) {
-         e1.printStackTrace();
-         }
+        SchemaRequest.FieldType ft = new SchemaRequest.FieldType("solr_cnAnalyzer");
+        try {
+            SchemaResponse.FieldTypeResponse ftresp = ft.process(solr);
+            System.out.println(ftresp);
+        } catch (SolrServerException | IOException e1) {
+            e1.printStackTrace();
+        }
 
-//        SchemaRequest.AddFieldType adf = new SchemaRequest.AddFieldType(ftd);
-//        try {
-//            SchemaResponse.UpdateResponse resp = adf.process(solr);
-//            System.out.println(resp);
-//        } catch (SolrServerException | IOException e) {
-//            e.printStackTrace();
-//        }
+        // SchemaRequest.AddFieldType adf = new SchemaRequest.AddFieldType(ftd);
+        // try {
+        // SchemaResponse.UpdateResponse resp = adf.process(solr);
+        // System.out.println(resp);
+        // } catch (SolrServerException | IOException e) {
+        // e.printStackTrace();
+        // }
 
     }
 
@@ -273,17 +272,12 @@ public class SolrMain {
         query.set("q", "name_s:test15 or name_s:test16");
 
         /*
-         * 布尔操作符AND、|| 布尔操作符OR、&& 布尔操作符NOT、!、-（排除操作符不能单独与项使用构成查询） “+”
-         * 存在操作符，要求符号“+”后的项必须在文档相应的域中存在 ( ) 用于构成子查询 [ ]
-         * 包含范围检索，如检索某时间段记录，包含头尾，date:[200707 TO 200710] {
-         * }不包含范围检索，如检索某时间段记录，不包含头尾 date:{200707 TO 200710}
+         * 布尔操作符AND、|| 布尔操作符OR、&& 布尔操作符NOT、!、-（排除操作符不能单独与项使用构成查询） “+” 存在操作符，要求符号“+”后的项必须在文档相应的域中存在 ( ) 用于构成子查询 [ ] 包含范围检索，如检索某时间段记录，包含头尾，date:[200707 TO 200710] { }不包含范围检索，如检索某时间段记录，不包含头尾 date:{200707 TO 200710}
          * " 转义操作符，特殊字符包括+ - && || ! ( ) { } [ ] ^ ” ~ * ? : "
          */
 
         /*
-         * 查询某个字段非空的记录 比如：fq=FieldName:[‘’ TO *] 查询FieldName非空的数据。 查询某个字段为空的记录
-         * 比如：查询公司名称为空的记录可以采用如下语法实现(似乎目前为止只有此方法可行): -company:[* TO *]
-         * 取反实例：fq=!fstate:1
+         * 查询某个字段非空的记录 比如：fq=FieldName:[‘’ TO *] 查询FieldName非空的数据。 查询某个字段为空的记录 比如：查询公司名称为空的记录可以采用如下语法实现(似乎目前为止只有此方法可行): -company:[* TO *] 取反实例：fq=!fstate:1
          */
 
         // “^”控制相关度检索，如检索jakarta
@@ -307,14 +301,12 @@ public class SolrMain {
     public static void query1(SolrClient solr) throws Exception {
         SolrQuery query = new SolrQuery();
         /*
-         * 1、常用 q :查询字符串，这个是必须的。如果查询所有*:* ，根据指定字段查询（Name:张三 AND Address:北京）
-         * 注意：AND要大写 否则会被当做默认OR
+         * 1、常用 q :查询字符串，这个是必须的。如果查询所有*:* ，根据指定字段查询（Name:张三 AND Address:北京） 注意：AND要大写 否则会被当做默认OR
          */
         // query.setQuery("*:*");
 
         /*
-         * fq : （filter query）过虑查询，作用：在q查询符合结果中同时是fq查询符合的，
-         * 例如：q=查询全部&fq=只要title得值为:xxxx
+         * fq : （filter query）过虑查询，作用：在q查询符合结果中同时是fq查询符合的， 例如：q=查询全部&fq=只要title得值为:xxxx
          */
         // query.setFilterQueries("typeName:测试");
 
@@ -324,8 +316,7 @@ public class SolrMain {
         // query.setFields("typeId,typeName");
 
         /*
-         * sort : 排序，格式：sort=<field name>+<desc|asc>[,<field name>+<desc|asc>]…
-         * 。 示例：（score desc, price asc）表示先 “score” 降序, 再 “price” 升序，默认是相关性降序。
+         * sort : 排序，格式：sort=<field name>+<desc|asc>[,<field name>+<desc|asc>]… 。 示例：（score desc, price asc）表示先 “score” 降序, 再 “price” 升序，默认是相关性降序。
          */
         SortClause sort1 = new SortClause("createTime", ORDER.asc);
         SortClause sort2 = new SortClause("updateTime", ORDER.desc);

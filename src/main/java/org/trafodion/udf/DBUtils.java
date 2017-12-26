@@ -86,7 +86,7 @@ public class DBUtils {
                     int datatype = colRet.getInt("DATA_TYPE");
                     boolean signed = colRet.getMetaData().isSigned(colNum);
                     Object[] objs = { colName, datatype, datasize, scale, nullable, signed };
-                    colNameType.put(colRet.getString("COLUMN_NAME").toUpperCase(), objs);
+                    colNameType.put(colName, objs);
                 }
                 colNum++;
             }
@@ -98,8 +98,8 @@ public class DBUtils {
             System.out.println("finish");
         } catch (Exception e) {
             System.out.println("error");
-            System.err.println(e.getMessage());
-            System.err.println("finish");
+            System.out.println(e.getMessage());
+            System.out.println("finish");
         }
     }
 

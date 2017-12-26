@@ -1,8 +1,5 @@
 package org.trafodion.udf;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,27 +40,16 @@ import org.trafodion.sql.udr.UDRPlanInfo;
 public class txt_ndx_insert extends UDR {
     private final static String[] typeName = { "_s", "_i", "_l", "_d" };
     private final static String CN = "_cn_s";
-    private int batch = 100;
+    private final static String EN = "_en_s";
 
     private SolrClient getSolrClient() throws UDRException {
         String homeDir = System.getenv("MY_SQROOT");
         if (System.getenv("MY_SQROOT") == null || System.getenv("MY_SQROOT").length() == 0) {
             homeDir = System.getenv("TRAF_HOME");
         }
-        String yamlFile = homeDir + "/udr/public/external_libs/solr.yaml";
-        File f = new File(yamlFile);
-        if (!f.exists()) {
-            throw new UDRException(38000, "error : input data file [%s] not exist...", yamlFile);
-        }
-        Settings s = null;
-        try {
-            s = Settings.read(new FileInputStream(f));
-        } catch (FileNotFoundException e) {
-        }
-        this.batch = s.batch;
 
-        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(s.getZkStr()).build();
-        cloudSolrClient.setDefaultCollection(s.defaultCollection);
+        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(Utils.getZkHosts()).build();
+        cloudSolrClient.setDefaultCollection(Utils.getDefaultCollection());
 
         try {
             SolrPingResponse ping = cloudSolrClient.ping();
@@ -72,7 +58,7 @@ public class txt_ndx_insert extends UDR {
             throw new UDRException(
                     38000,
                     "error while connecting to full text search engine...please make sure configuration in file [%s] is correct...[%s]",
-                    yamlFile, e.getMessage());
+                    homeDir + "/udr/public/conf/solr.yaml", e.getMessage());
         }
         return cloudSolrClient;
     }
@@ -91,13 +77,17 @@ public class txt_ndx_insert extends UDR {
 
     @Override
     public void processData(UDRInvocationInfo info, UDRPlanInfo plan) throws UDRException {
+
         String tblName = info.par().getString(0).toUpperCase(); // first param
                                                                 // is tableName
         // second param is cols, first index is text type, follow is index
         String[] cols = info.par().getString(1).replaceAll(" ", "").toUpperCase().split(",");
-
+        Map<String, String[]> pkMap = Utils.getTablePKinfo(Utils.getCatalog(), Utils.getSchema(), tblName);
+        if (pkMap.get("error") != null) {
+            throw new UDRException(38000, "error while get table primart key info , error info [ %s ]",
+                    pkMap.get("error")[0]);
+        }
         Map<String, String> map = genColFieldMap(info);
-
         SolrClient solr = getSolrClient();
         SolrInputDocument doc = null;
 
@@ -110,19 +100,25 @@ public class txt_ndx_insert extends UDR {
             doc = new SolrInputDocument();
             doc.addField("id", UUID.randomUUID().toString());
             // full text content
-            doc.addField(cols[0] + CN, info.in().getString(cols[0]));
+            String textFieldName = null;
+            if (Utils.isChinese(info.in().getString(cols[0]))) {
+                textFieldName = cols[0] + CN;
+            } else {
+                textFieldName = cols[0] + EN;
+            }
+            doc.addField(textFieldName, info.in().getString(cols[0]));
             // filter
             doc.addField("subject", tblName);
             // traf table pk
-            for (int i = 1; i < cols.length; i++) {
-                String fieldName = map.get(cols[i]);
-                Object value = getValue(info, cols[i]);
+            for (String pk : pkMap.keySet()) {
+                String fieldName = map.get(pk);
+                Object value = getValue(info, pk);
                 doc.setField(fieldName, value);
             }
             try {
                 solr.add(doc);
-                if (count % batch == 0) {
-                    count -= batch;
+                if (count % Utils.batch == 0) {
+                    count -= Utils.batch;
                     solr.commit();
                 }
             } catch (Exception e) {
@@ -147,9 +143,11 @@ public class txt_ndx_insert extends UDR {
         emitRow(info);
     }
 
+    // return colName & fieldType
+    // eg: a string column [A] will be [A_s]
     private Map<String, String> genColFieldMap(UDRInvocationInfo info) throws UDRException {
         Map<String, String> map = new HashMap<String, String>();
-        int numCols = info.in().getNumColumns();
+        int numCols = info.in().getNumColumns();// get from input tbl
         for (int i = 1; i < numCols; i++) {
             ColumnInfo ci = info.in().getColumn(i);
             TypeInfo type = ci.getType();
