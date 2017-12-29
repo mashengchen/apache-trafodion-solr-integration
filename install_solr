@@ -1,0 +1,105 @@
+#!/bin/sh
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+#!/bin/sh
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+#
+##############################################################################
+UDR_DIR=${MY_SQROOT}/udr
+SOLR_TAR=solr-6.6.0.tgz
+SOLR_DIR=${MY_SQROOT}/solr
+SOLR_CONGIF_NAME=trafconfig
+TRAF_COLLECTION=traf_collection
+SOLR_INTEGRATION_JAR=SolrUDF-1.0.jar
+SOLR_INTEGRATION_JAR_DIR=${MY_SQROOT}/export/lib
+SOLR_INTEGRATION_CONFIG=solr.yaml
+SOLR_INTEGRATION_CONFIG_DIR=${MY_SQROOT}/udr/public/external_libs
+
+echo "do solr"
+if [ ! -d ${SOLR_DIR} ]; then
+    if [ ! -f ${MY_SQROOT}/${SOLR_TAR} ]; then
+        wget -O ${MY_SQROOT}/solr-6.6.0.tgz http://archive.apache.org/dist/lucene/solr/6.6.0/solr-6.6.0.tgz
+        echo "Downloading solr, file ${SOLR_TAR}"
+    fi
+    cd ${MY_SQROOT}
+    tar -zxf ${SOLR_TAR}
+    mv ${MY_SQROOT}/solr-6.6.0 ${SOLR_DIR}
+    cp ${UDR_DIR}/ik-analyzer-*.jar ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/lib/
+    if [ ! -d ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes ]; then
+        mkdir -p ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
+    fi
+    cp ${UDR_DIR}/*.dic ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
+    cp ${UDR_DIR}/*.xml ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
+    if [ ! -z ${MY_NODES} ]; then
+        pdcp ${MY_NODES} -r ${SOLR_DIR} ${MY_SQROOT}
+    fi
+fi
+
+ZOO_PORT_NODES=${ZOO_PORT_NODES:-localhost:2181}
+if [ ! -z ${MY_NODES} ]; then
+    pdsh ${MY_NODES}  "${MY_SQROOT}/solr/bin/solr -c -z ${ZOO_PORT_NODES}"
+else
+    ${MY_SQROOT}/solr/bin/solr -c -z ${ZOO_PORT_NODES}
+fi
+${MY_SQROOT}/solr/server/scripts/cloud-scripts/zkcli.sh -zkhost ${ZOO_PORT_NODES} -cmd upconfig -confdir ${MY_SQROOT}/solr/server/solr/configsets/sample_techproducts_configs/conf -confname ${SOLR_CONGIF_NAME}
+curl -d "action=CREATE&name=${TRAF_COLLECTION}&maxShardsPerNode=2&numShards=1&replicationFactor=1&collection.configName=${SOLR_CONGIF_NAME}" "http://localhost:8983/solr/admin/collections"
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "add-field-type" : {
+        "name":"solr_cnAnalyzer",
+        "class":"solr.TextField",
+        "positionIncrementGap":"100",
+        "indexAnalyzer" : {
+            "tokenizer":{ "class":"org.wltea.analyzer.solr.IKTokenizerFactory" }
+        },
+        "queryAnalyzer" : {
+            "tokenizer":{ "class":"org.wltea.analyzer.solr.IKTokenizerFactory" }
+        }
+    }
+    }' http://localhost:8983/solr/${TRAF_COLLECTION}/schema
+
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "add-dynamic-field":{
+        "name":"*_cn_s",
+        "type":"solr_cnAnalyzer",
+        "indexed":true,
+        "stored":false
+    }
+    }' http://localhost:8983/solr/${TRAF_COLLECTION}/schema
+
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "add-dynamic-field":{
+    "name":"*_en_s",
+    "type":"text_general",
+    "indexed":true,
+    "stored":false }
+    }' http://localhost:8983/solr/${TRAF_COLLECTION}/schema
+
+
+SOLR_UDF="create library SolrUDFlib file '${MY_SQROOT}/export/lib/SolrUDF-1.0.jar';"
+FUN_INSERT="create table_mapping function txt_ndx_insert(tblName varchar(100) not null, cols varchar(100)) external name 'org.trafodion.udf.txt_ndx_insert' language java library SolrUDFlib;"
+FUN_SEARCH="create table_mapping function TXT_SEARCH(tblName varchar(100) not null, cols varchar(100), keyword varchar(1000) CHARACTER SET ucs2) external name 'org.trafodion.udf.TXT_SEARCH' language java library SolrUDFlib;"
+cd ${MY_SQROOT}/sql/scripts;  echo ${SOLR_UDF}${FUN_INSERT}${FUN_SEARCH} | sqlci > ${MY_SQROOT}/solrErrors.txt
+
