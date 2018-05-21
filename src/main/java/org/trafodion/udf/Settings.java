@@ -36,10 +36,11 @@ import org.yaml.snakeyaml.constructor.Constructor;
 public class Settings {
     public int batch = 100;
 
-    public String defaultCollection = null;
+    private String defaultCollection = null;
     private String schema = null;
     private String catalog = null;
-    public List<String> zkhosts;
+    private List<String> zkhosts;
+    private String zkChroot;
 
     public static Settings read(final InputStream stream) {
         Objects.requireNonNull(stream);
@@ -57,7 +58,7 @@ public class Settings {
         try {
             Settings s = Settings.read(new FileInputStream(new File("remote-objects.yaml")));
 
-            System.out.println(s);
+            System.out.println(s.zkChroot);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -78,6 +79,30 @@ public class Settings {
 
     public void setCatalog(String catalog) {
         this.catalog = catalog.toUpperCase();
+    }
+
+    public String getDefaultCollection() {
+        return defaultCollection;
+    }
+
+    public void setDefaultCollection(String defaultCollection) {
+        this.defaultCollection = defaultCollection;
+    }
+
+    public List<String> getZkhosts() {
+        return zkhosts;
+    }
+
+    public void setZkhosts(List<String> zkhosts) {
+        this.zkhosts = zkhosts;
+    }
+
+    public String getZkChroot() {
+        return zkChroot;
+    }
+
+    public void setZkChroot(String zkChroot) {
+        this.zkChroot = zkChroot;
     }
 
 }

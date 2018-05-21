@@ -59,6 +59,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CoreAdminParams;
 import org.trafodion.udf.Settings;
+import org.trafodion.udf.Utils;
 
 public class SolrMain {
 
@@ -71,8 +72,9 @@ public class SolrMain {
         }
         Settings s = Settings.read(new FileInputStream(f));
 
-        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(s.zkhosts).build();
-        cloudSolrClient.setDefaultCollection(s.defaultCollection);
+        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(Utils.getZkHosts())
+                .withZkChroot(Utils.getZkChroot()).build();
+        cloudSolrClient.setDefaultCollection(Utils.getDefaultCollection());
 
         try {
             SolrPingResponse ping = cloudSolrClient.ping();
@@ -431,7 +433,7 @@ public class SolrMain {
         // main.deleteByQuery(client);
 
         // main.createDoc(client, 2, text1);
-        main.addFieldType(client);
+        // main.addFieldType(client);
 
         client.close();
         // getTblPKInfo();

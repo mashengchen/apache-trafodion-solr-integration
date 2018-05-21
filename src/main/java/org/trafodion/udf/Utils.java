@@ -21,6 +21,7 @@ public class Utils {
     private static String schema = null;
     private static String catalog = null;
     private static List<String> zkhosts = null;
+    private static String zkChroot = null;
     public static int batch = 100;
 
     static {
@@ -37,6 +38,13 @@ public class Utils {
             reload();
         }
         return zkhosts;
+    }
+
+    public static String getZkChroot() {
+        if (isConfFileUpdated()) {
+            reload();
+        }
+        return zkChroot;
     }
 
     public static String getDefaultCollection() {
@@ -75,8 +83,9 @@ public class Utils {
     private static void reload() {
         try {
             Settings s = Settings.read(new FileInputStream(new File(yamlFile)));
-            zkhosts = s.zkhosts;
-            defaultCollection = s.defaultCollection;
+            zkhosts = s.getZkhosts();
+            zkChroot = s.getZkChroot();
+            defaultCollection = s.getDefaultCollection();
             schema = s.getSchema();
             catalog = s.getCatalog();
         } catch (FileNotFoundException e) {
@@ -98,6 +107,7 @@ public class Utils {
             zkhostsStr = "localhost:2181";
         }
         zkhosts = Arrays.asList(zkhostsStr.replaceAll(" ", "").split(","));
+        zkChroot = "/solr";
         defaultCollection = "traf_collection";
         catalog = "TRAFODION";
         schema = "SEABASE";
@@ -105,9 +115,10 @@ public class Utils {
         for (String zkhost : zkhosts) {
             sb.append(" - ").append(zkhost).append(System.getProperty("line.separator"));
         }
-        sb.append("defaultCollection: ").append(defaultCollection).append(System.getProperty("line.separator"))
-                .append("catalog: ").append(catalog).append(System.getProperty("line.separator")).append("schema: ")
-                .append(schema);
+        sb.append("zkChroot: ").append(zkChroot).append(System.getProperty("line.separator"));
+        sb.append("defaultCollection: ").append(defaultCollection).append(System.getProperty("line.separator"));
+        sb.append("catalog: ").append(catalog).append(System.getProperty("line.separator"));
+        sb.append("schema: ").append(schema);
 
         return sb.toString();
     }

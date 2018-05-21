@@ -58,7 +58,7 @@ if [ ! -d ${SOLR_DIR} ]; then
     fi
 fi
 
-ZOO_PORT_NODES=${ZOO_PORT_NODES:-localhost:2181}
+ZOO_PORT_NODES=${ZOO_PORT_NODES:-localhost:2181/solr}
 if [ ! -z ${MY_NODES} ]; then
     pdsh ${MY_NODES}  "${MY_SQROOT}/solr/bin/solr -c -z ${ZOO_PORT_NODES}"
 else

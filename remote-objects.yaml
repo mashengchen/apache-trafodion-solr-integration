@@ -1,3 +1,6 @@
+zkhosts:
+ - localhost:2181
+zkChroot : /solr
 defaultCollection : traf_collection
 schema : SEABASE
 catalog : TRAFODION

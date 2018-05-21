@@ -68,7 +68,7 @@ public class TXT_SEARCH extends UDR {
             homeDir = System.getenv("TRAF_HOME");
         }
 
-        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(Utils.getZkHosts()).build();
+        CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder().withZkHost(Utils.getZkHosts()).withZkChroot(Utils.getZkChroot()).build();
         cloudSolrClient.setDefaultCollection(Utils.getDefaultCollection());
 
         try {
