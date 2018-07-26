@@ -24,6 +24,10 @@ public class Utils {
   private static String zkChroot = null;
   public static int batch = 100;
 
+  private static String trafHome;
+  private static String javaHome;
+  private static String classPath;
+
   static {
     try {
       init();
@@ -125,22 +129,25 @@ public class Utils {
   }
 
   public static String getTrafHome() {
-    String trafHome = System.getenv().get("MY_SQROOT");// for version before 2.3
-    if (trafHome == null || trafHome.length() == 0) {
-      trafHome = System.getenv("TRAF_HOME");// for version after 2.3
-    }
     return trafHome;
   }
 
   public static String getJavaHome() {
-    return System.getenv().get("JAVA_HOME");// maybe need version check in the future
+    return javaHome;
   }
 
   public static String getClassPath() {
-    return System.getenv().get("CLASSPATH");// maybe need do some filter in the future
+    return classPath;
   }
 
   private static synchronized void init() throws IOException {
+    trafHome = System.getenv().get("MY_SQROOT");// for version before 2.3
+    if (trafHome == null || trafHome.length() == 0) {
+      trafHome = System.getenv("TRAF_HOME");// for version after 2.3
+    }
+    javaHome = System.getenv().get("JAVA_HOME");// maybe need version check in the future
+    classPath = System.getenv().get("CLASSPATH");// maybe need do some filter in the future
+
     String homeDir = Utils.getTrafHome();
     String fileDir = homeDir + "/udr/public/conf";
     File path = new File(fileDir);
