@@ -34,75 +34,75 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 public class Settings {
-    public int batch = 100;
+  public int batch = 100;
 
-    private String defaultCollection = null;
-    private String schema = null;
-    private String catalog = null;
-    private List<String> zkhosts;
-    private String zkChroot;
+  private String defaultCollection = null;
+  private String schema = null;
+  private String catalog = null;
+  private List<String> zkhosts;
+  private String zkChroot;
 
-    public static Settings read(final InputStream stream) {
-        Objects.requireNonNull(stream);
+  public static Settings read(final InputStream stream) {
+    Objects.requireNonNull(stream);
 
-        final Constructor constructor = new Constructor(Settings.class);
-        final TypeDescription settingsDescription = new TypeDescription(Settings.class);
-        settingsDescription.putListPropertyType("zkhosts", String.class);
-        constructor.addTypeDescription(settingsDescription);
+    final Constructor constructor = new Constructor(Settings.class);
+    final TypeDescription settingsDescription = new TypeDescription(Settings.class);
+    settingsDescription.putListPropertyType("zkhosts", String.class);
+    constructor.addTypeDescription(settingsDescription);
 
-        final Yaml yaml = new Yaml(constructor);
-        return yaml.loadAs(stream, Settings.class);
+    final Yaml yaml = new Yaml(constructor);
+    return yaml.loadAs(stream, Settings.class);
+  }
+
+  public static void main(String[] args) {
+    try {
+      Settings s = Settings.read(new FileInputStream(new File("remote-objects.yaml")));
+
+      System.out.println(s.zkChroot);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
     }
 
-    public static void main(String[] args) {
-        try {
-            Settings s = Settings.read(new FileInputStream(new File("remote-objects.yaml")));
+  }
 
-            System.out.println(s.zkChroot);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
+  public String getSchema() {
+    return schema == null ? "SEABASE" : schema;
+  }
 
-    }
+  public void setSchema(String schema) {
+    this.schema = schema.toUpperCase();
+  }
 
-    public String getSchema() {
-        return schema == null ? "SEABASE" : schema;
-    }
+  public String getCatalog() {
+    return catalog == null ? "TRAFODION" : catalog;
+  }
 
-    public void setSchema(String schema) {
-        this.schema = schema.toUpperCase();
-    }
+  public void setCatalog(String catalog) {
+    this.catalog = catalog.toUpperCase();
+  }
 
-    public String getCatalog() {
-        return catalog == null ? "TRAFODION" : catalog;
-    }
+  public String getDefaultCollection() {
+    return defaultCollection;
+  }
 
-    public void setCatalog(String catalog) {
-        this.catalog = catalog.toUpperCase();
-    }
+  public void setDefaultCollection(String defaultCollection) {
+    this.defaultCollection = defaultCollection;
+  }
 
-    public String getDefaultCollection() {
-        return defaultCollection;
-    }
+  public List<String> getZkhosts() {
+    return zkhosts;
+  }
 
-    public void setDefaultCollection(String defaultCollection) {
-        this.defaultCollection = defaultCollection;
-    }
+  public void setZkhosts(List<String> zkhosts) {
+    this.zkhosts = zkhosts;
+  }
 
-    public List<String> getZkhosts() {
-        return zkhosts;
-    }
+  public String getZkChroot() {
+    return zkChroot;
+  }
 
-    public void setZkhosts(List<String> zkhosts) {
-        this.zkhosts = zkhosts;
-    }
-
-    public String getZkChroot() {
-        return zkChroot;
-    }
-
-    public void setZkChroot(String zkChroot) {
-        this.zkChroot = zkChroot;
-    }
+  public void setZkChroot(String zkChroot) {
+    this.zkChroot = zkChroot;
+  }
 
 }
