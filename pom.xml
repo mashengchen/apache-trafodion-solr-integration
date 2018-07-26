@@ -11,6 +11,7 @@
             <version>2.3.0</version>
             <scope>system</scope>
             <systemPath>E:/work/maven/org/trafodion/trafodion-sql/2.3.0/trafodion-sql-apache-2.3.0.jar</systemPath>
+            <systemPath>${TRAF_HOME}/export/lib/trafodion-sql-apache-2.3.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.solr</groupId>
