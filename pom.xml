@@ -8,10 +8,9 @@
         <dependency>
             <groupId>org.trafodion</groupId>
             <artifactId>trafodion-sql</artifactId>
-            <version>2.3.0</version>
+            <version>${TRAFODION_VER}</version>
             <scope>system</scope>
-            <systemPath>E:/work/maven/org/trafodion/trafodion-sql/2.3.0/trafodion-sql-apache-2.3.0.jar</systemPath>
-            <systemPath>${TRAF_HOME}/export/lib/trafodion-sql-apache-2.3.0.jar</systemPath>
+            <systemPath>${TRAF_HOME}/export/lib/trafodion-sql-apache-${TRAFODION_VER}.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.solr</groupId>
