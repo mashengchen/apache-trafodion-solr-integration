@@ -28,25 +28,26 @@
 # @@@ END COPYRIGHT @@@
 #
 ##############################################################################
-UDR_DIR=${TRAF_HOME}/udr
+HOME_DIR=${TRAF_HOME:-$MY_SQROOT}
+UDR_DIR=${HOME_DIR}/udr
 SOLR_TAR=solr-6.6.0.tgz
-SOLR_DIR=${TRAF_HOME}/solr
+SOLR_DIR=${HOME_DIR}/solr
 SOLR_CONGIF_NAME=trafconfig
 TRAF_COLLECTION=traf_collection
 SOLR_INTEGRATION_JAR=SolrUDF-1.0.jar
-SOLR_INTEGRATION_JAR_DIR=${TRAF_HOME}/export/lib
+SOLR_INTEGRATION_JAR_DIR=${HOME_DIR}/export/lib
 SOLR_INTEGRATION_CONFIG=solr.yaml
-SOLR_INTEGRATION_CONFIG_DIR=${TRAF_HOME}/udr/public/external_libs
+SOLR_INTEGRATION_CONFIG_DIR=${HOME_DIR}/udr/public/external_libs
 
 echo "do solr"
 if [ ! -d ${SOLR_DIR} ]; then
-    if [ ! -f ${TRAF_HOME}/${SOLR_TAR} ]; then
-        wget -O ${TRAF_HOME}/solr-6.6.0.tgz http://archive.apache.org/dist/lucene/solr/6.6.0/solr-6.6.0.tgz
+    if [ ! -f ${HOME_DIR}/${SOLR_TAR} ]; then
+        wget -O ${HOME_DIR}/solr-6.6.0.tgz http://archive.apache.org/dist/lucene/solr/6.6.0/solr-6.6.0.tgz
         echo "Downloading solr, file ${SOLR_TAR}"
     fi
-    cd ${TRAF_HOME}
+    cd ${HOME_DIR}
     tar -zxf ${SOLR_TAR}
-    mv ${TRAF_HOME}/solr-6.6.0 ${SOLR_DIR}
+    mv ${HOME_DIR}/solr-6.6.0 ${SOLR_DIR}
     cp ${UDR_DIR}/ik-analyzer-*.jar ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/lib/
     if [ ! -d ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes ]; then
         mkdir -p ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
@@ -54,17 +55,17 @@ if [ ! -d ${SOLR_DIR} ]; then
     cp ${UDR_DIR}/*.dic ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
     cp ${UDR_DIR}/*.xml ${SOLR_DIR}/server/solr-webapp/webapp/WEB-INF/classes
     if [ ! -z ${MY_NODES} ]; then
-        pdcp ${MY_NODES} -r ${SOLR_DIR} ${TRAF_HOME}
+        pdcp ${MY_NODES} -r ${SOLR_DIR} ${HOME_DIR}
     fi
 fi
 
-ZOO_PORT_NODES=${ZOO_PORT_NODES:-localhost:2181/solr}
+ZOO_PORT_NODES=${ZOO_PORT_NODES:-localhost:2181}/solr
 if [ ! -z ${MY_NODES} ]; then
     pdsh ${MY_NODES}  "${TRAF_HOME}/solr/bin/solr -c -z ${ZOO_PORT_NODES}"
 else
-    ${TRAF_HOME}/solr/bin/solr -c -z ${ZOO_PORT_NODES}
+    ${HOME_DIR}/solr/bin/solr -c -z ${ZOO_PORT_NODES}
 fi
-${TRAF_HOME}/solr/server/scripts/cloud-scripts/zkcli.sh -zkhost ${ZOO_PORT_NODES} -cmd upconfig -confdir ${TRAF_HOME}/solr/server/solr/configsets/sample_techproducts_configs/conf -confname ${SOLR_CONGIF_NAME}
+${HOME_DIR}/solr/server/scripts/cloud-scripts/zkcli.sh -zkhost ${ZOO_PORT_NODES} -cmd upconfig -confdir ${HOME_DIR}/solr/server/solr/configsets/sample_techproducts_configs/conf -confname ${SOLR_CONGIF_NAME}
 curl -d "action=CREATE&name=${TRAF_COLLECTION}&maxShardsPerNode=2&numShards=1&replicationFactor=1&collection.configName=${SOLR_CONGIF_NAME}" "http://localhost:8983/solr/admin/collections"
 curl -X POST -H 'Content-type:application/json' --data-binary '{
     "add-field-type" : {
@@ -98,8 +99,8 @@ curl -X POST -H 'Content-type:application/json' --data-binary '{
     }' http://localhost:8983/solr/${TRAF_COLLECTION}/schema
 
 
-SOLR_UDF="create library SolrUDFlib file '${TRAF_HOME}/export/lib/SolrUDF-1.0.jar';"
+SOLR_UDF="create library SolrUDFlib file '${HOME_DIR}/export/lib/SolrUDF-1.0.jar';"
 FUN_INSERT="create table_mapping function txt_ndx_insert(tblName varchar(100) not null, cols varchar(100)) external name 'org.trafodion.udf.txt_ndx_insert' language java library SolrUDFlib;"
 FUN_SEARCH="create table_mapping function TXT_SEARCH(tblName varchar(100) not null, cols varchar(100), keyword varchar(1000) CHARACTER SET ucs2) external name 'org.trafodion.udf.TXT_SEARCH' language java library SolrUDFlib;"
-cd ${TRAF_HOME}/sql/scripts;  echo ${SOLR_UDF}${FUN_INSERT}${FUN_SEARCH} | sqlci > ${TRAF_HOME}/solrErrors.txt
+cd ${HOME_DIR}/sql/scripts;  echo ${SOLR_UDF}${FUN_INSERT}${FUN_SEARCH} | sqlci > ${HOME_DIR}/solrErrors.txt
 
