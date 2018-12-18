@@ -1,4 +1,4 @@
-package org.trafodion.udf;
+package org.trafodion.sql.udr.solr;
 
 import java.io.BufferedReader;
 import java.io.File;

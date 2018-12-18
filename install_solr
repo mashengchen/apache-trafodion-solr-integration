@@ -100,7 +100,7 @@ curl -X POST -H 'Content-type:application/json' --data-binary '{
 
 
 SOLR_UDF="create library SolrUDFlib file '${HOME_DIR}/export/lib/SolrUDF-1.0.jar';"
-FUN_INSERT="create table_mapping function txt_ndx_insert(tblName varchar(100) not null, cols varchar(100)) external name 'org.trafodion.udf.txt_ndx_insert' language java library SolrUDFlib;"
-FUN_SEARCH="create table_mapping function TXT_SEARCH(tblName varchar(100) not null, cols varchar(100), keyword varchar(1000) CHARACTER SET ucs2) external name 'org.trafodion.udf.TXT_SEARCH' language java library SolrUDFlib;"
+FUN_INSERT="create table_mapping function txt_ndx_insert(tblName varchar(100) not null, cols varchar(100)) external name 'org.trafodion.sql.udr.solr.TxtNdxInsert' language java library SolrUDFlib;"
+FUN_SEARCH="create table_mapping function TXT_SEARCH(tblName varchar(100) not null, cols varchar(100), keyword varchar(1000) CHARACTER SET ucs2) external name 'org.trafodion.sql.udr.solr.TxtSearch' language java library SolrUDFlib;"
 cd ${HOME_DIR}/sql/scripts;  echo ${SOLR_UDF}${FUN_INSERT}${FUN_SEARCH} | sqlci > ${HOME_DIR}/solrErrors.txt
 

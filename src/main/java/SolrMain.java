@@ -59,8 +59,8 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CoreAdminParams;
-import org.trafodion.udf.Settings;
-import org.trafodion.udf.Utils;
+import org.trafodion.sql.udr.solr.Settings;
+import org.trafodion.sql.udr.solr.Utils;
 
 public class SolrMain {
 

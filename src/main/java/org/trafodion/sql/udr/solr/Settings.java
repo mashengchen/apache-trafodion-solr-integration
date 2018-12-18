@@ -20,7 +20,7 @@ under the License.
 
  * @@@ END COPYRIGHT @@@
  */
-package org.trafodion.udf;
+package org.trafodion.sql.udr.solr;
 
 import java.io.File;
 import java.io.FileInputStream;
